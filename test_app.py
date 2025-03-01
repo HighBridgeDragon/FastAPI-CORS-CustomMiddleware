@@ -19,9 +19,16 @@ AC_H = "Access-Control-Allow-Headers"
 REQ_METHOD = "Access-Control-Request-Method"
 REQ_HEADERS = "Access-Control-Request-Headers"
 
+def verify_cors_headers(headers, methods=None):
+    """CORSヘッダーの検証"""
+    assert headers[AC_O] == ORIGIN
+    assert headers[AC_C] == "true"
+    if methods:
+        assert methods in headers[AC_M]
+        assert TYPE in headers[AC_H]
 
 def test_cors_preflight():
-    """プリフライトリクエストのテスト - 認証不要"""
+    """プリフライトリクエストのCORSヘッダー検証"""
     headers = {
         "Origin": ORIGIN,
         REQ_METHOD: METHOD,
@@ -29,66 +36,92 @@ def test_cors_preflight():
     }
     response = client.options(PATH, headers=headers)
     assert response.status_code == 200
+    verify_cors_headers(response.headers, METHOD)
 
-    # CORSヘッダーの検証
-    headers = response.headers
-    assert headers[AC_O] == ORIGIN
-    assert headers[AC_C] == "true"
-    assert METHOD in headers[AC_M]
-    assert TYPE in headers[AC_H]
+def test_cors_success_response():
+    """正常系レスポンスのCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
+        TYPE: "application/json",
+        "Authorization": "Bearer test-token"
+    }
+    response = client.post(PATH, headers=headers, json={"status": 200})
+    assert response.status_code == 200
+    verify_cors_headers(response.headers)
 
-
-def test_cors_actual_request():
-    """通常のリクエストでのCORSヘッダーのテスト - 認証必要"""
-    # 認証なしの場合は401
-    headers = {"Origin": ORIGIN, TYPE: "application/json"}
-    data = {"status": 200}
-    response = client.post(PATH, headers=headers, json=data)
+def test_cors_unauthorized_response():
+    """認証エラー時のCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
+        TYPE: "application/json"
+    }
+    response = client.post(PATH, headers=headers, json={"status": 200})
+    
+    # レスポンスの検証
     assert response.status_code == 401
     assert response.json()["error"] == "Authentication required"
     
-    # 認証ありの場合は成功
-    headers["Authorization"] = "Bearer test-token"
-    response = client.post(PATH, headers=headers, json=data)
-    assert response.status_code == 200
+    # CORSヘッダーの検証
+    verify_cors_headers(response.headers)
 
-    # CORSヘッダーの検証（認証エラー時も付与される）
-    headers = response.headers
-    assert headers[AC_O] == ORIGIN
-    assert headers[AC_C] == "true"
+def test_cors_invalid_json_response():
+    """不正なJSONリクエスト時のCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
+        TYPE: "application/json",
+        "Authorization": "Bearer test-token"
+    }
+    response = client.post(PATH, headers=headers, data="invalid json")
+    
+    # レスポンスの検証
+    assert response.status_code == 400
+    assert response.json()["error"] == "Invalid JSON"
+    
+    # CORSヘッダーの検証
+    verify_cors_headers(response.headers)
 
+def test_cors_method_not_allowed_response():
+    """不正なHTTPメソッド時のCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
+        "Authorization": "Bearer test-token"
+    }
+    response = client.get(PATH, headers=headers)
+    
+    # レスポンスの検証
+    assert response.status_code == 405
+    
+    # CORSヘッダーの検証
+    verify_cors_headers(response.headers)
 
-def test_custom_status_middleware():
-    """カスタムステータスミドルウェアのテスト - 認証必要"""
-    auth_headers = {
+def test_cors_custom_success_status():
+    """カスタムステータスコード（成功）のCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
         "Authorization": "Bearer test-token",
         TYPE: "application/json"
     }
-
-    # 正常なステータスコードのテスト
-    response = client.post(PATH, headers=auth_headers, json={"status": 201})
+    response = client.post(PATH, headers=headers, json={"status": 201})
+    
+    # レスポンスの検証
     assert response.status_code == 201
     assert response.json() == {"message": "Status 201"}
+    
+    # CORSヘッダーの検証
+    verify_cors_headers(response.headers)
 
-    # 不正なJSONのテスト
-    response = client.post(PATH, headers=auth_headers, data="invalid json")
-    assert response.status_code == 400
-    assert response.json()["error"] == "Invalid JSON"
-
-    # エラーステータスコードのテスト
-    response = client.post(PATH, headers=auth_headers, json={"status": 404})
+def test_cors_custom_error_status():
+    """カスタムステータスコード（エラー）のCORSヘッダー検証"""
+    headers = {
+        "Origin": ORIGIN,
+        "Authorization": "Bearer test-token",
+        TYPE: "application/json"
+    }
+    response = client.post(PATH, headers=headers, json={"status": 404})
+    
+    # レスポンスの検証
     assert response.status_code == 404
     assert response.json() == {"message": "Status 404"}
-
-
-def test_non_post_request():
-    """POST以外のリクエストのテスト - 認証必要"""
-    # 認証なしの場合は401
-    response = client.get(PATH)
-    assert response.status_code == 401
-    assert response.json()["error"] == "Authentication required"
-
-    # 認証ありの場合は405
-    headers = {"Authorization": "Bearer test-token"}
-    response = client.get(PATH, headers=headers)
-    assert response.status_code == 405  # Method Not Allowed
+    
+    # CORSヘッダーの検証
+    verify_cors_headers(response.headers)
