@@ -21,28 +21,40 @@ def error_response(code: int, msg: str, **extra) -> Res:
     return JSONResponse(status_code=code, content=content)
 
 
-async def handle_body(body: dict) -> Res | None:
-    """リクエストボディを処理"""
-    if "status" in body:
-        status = body["status"]
-        msg = f"Status {status}"
-        return JSONResponse(status_code=status, content={"message": msg})
-    return None
-
-
 async def custom_middleware(req: Request, call: Next) -> Res:
+    """
+    認証ミドルウェアの例
+    - プリフライトリクエスト（OPTIONS）は常に許可
+    - その他のリクエストは認証チェック
+    """
+    # プリフライトリクエストは常に許可（CORSミドルウェアに処理を委ねる）
+    if req.method == "OPTIONS":
+        return await call(req)
+
+    # 認証チェックの例（CORSミドルウェアが先に実行されているため、
+    # エラーレスポンスにもCORSヘッダーが付与される）
+    auth_header = req.headers.get("Authorization")
+    if not auth_header:
+        return JSONResponse(
+            status_code=401,
+            content={"error": "Authentication required"}
+        )
+
     try:
         if req.method == "POST":
             body_bytes = await req.body()
             if body_bytes:
-                body = json.loads(body_bytes)
-                resp = await handle_body(body)
-                if resp:
-                    return resp
+                try:
+                    body = json.loads(body_bytes)
+                    if "status" in body:
+                        req.state.status_code = body["status"]
+                except json.JSONDecodeError:
+                    return error_response(400, ERR_JSON)
 
-        return await call(req)
+        response = await call(req)
+        if hasattr(req.state, "status_code"):
+            response.status_code = req.state.status_code
+        return response
 
-    except json.JSONDecodeError:
-        return error_response(400, ERR_JSON)
-    except Exception as e:
-        return error_response(500, ERR_SYSTEM, detail=str(e))
+    except Exception:
+        return error_response(500, ERR_SYSTEM)

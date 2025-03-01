@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from middleware import custom_middleware
+import json
 
 app = FastAPI()
 
-# FastAPIのCORSミドルウェアの適用
+
+# FastAPIのCORSミドルウェアを最初に適用
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -13,12 +16,19 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-# カスタムミドルウェアの適用
+# カスタムミドルウェア（認証など）を後に適用
 app.middleware("http")(custom_middleware)
 
 
 # テスト用エンドポイント
 @app.post("/test-status")
 async def test_status(request: Request):
-    body = await request.json()
-    return {"message": f"Status {body.get('status', 200)} requested"}
+    try:
+        body = await request.json()
+        status = getattr(request.state, "status_code", 200)
+        return {"message": f"Status {status}"}
+    except json.JSONDecodeError:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid JSON"}
+        )
