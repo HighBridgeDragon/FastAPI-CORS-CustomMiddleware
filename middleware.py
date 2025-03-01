@@ -12,35 +12,41 @@ Next = Callable[[Request], Awt]
 ERR_JSON = "Invalid JSON"
 ERR_SYSTEM = "System error"
 
+# 許可するOrigin
+ALLOWED_ORIGINS = ["http://localhost:3000"]
 
-def error_response(code: int, msg: str, **extra) -> Res:
+def error_response(code: int, msg: str, req: Request = None, **extra) -> Res:
     """エラーレスポンスを生成"""
     content = {"error": msg}
     if extra:
         content.update(extra)
-    return JSONResponse(status_code=code, content=content)
-
+    response = JSONResponse(status_code=code, content=content)
+    
+    # リクエストがあり、許可されたOriginからのリクエストの場合のみCORSヘッダーを付与
+    if req and "Origin" in req.headers:
+        origin = req.headers["Origin"]
+        if origin in ALLOWED_ORIGINS:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 async def custom_middleware(req: Request, call: Next) -> Res:
     """
     認証ミドルウェアの例
-    - プリフライトリクエスト（OPTIONS）は常に許可
+    - プリフライトリクエストはCORSミドルウェアに委ねる
     - その他のリクエストは認証チェック
     """
-    # プリフライトリクエストは常に許可（CORSミドルウェアに処理を委ねる）
-    if req.method == "OPTIONS":
-        return await call(req)
-
-    # 認証チェックの例（CORSミドルウェアが先に実行されているため、
-    # エラーレスポンスにもCORSヘッダーが付与される）
-    auth_header = req.headers.get("Authorization")
-    if not auth_header:
-        return JSONResponse(
-            status_code=401,
-            content={"error": "Authentication required"}
-        )
-
     try:
+        # プリフライトリクエストはCORSミドルウェアに委ねる
+        if req.method == "OPTIONS":
+            return await call(req)
+
+        # 認証チェック
+        auth_header = req.headers.get("Authorization")
+        if not auth_header:
+            return error_response(401, "Authentication required", req)
+
+        # POSTリクエストの処理
         if req.method == "POST":
             body_bytes = await req.body()
             if body_bytes:
@@ -49,7 +55,7 @@ async def custom_middleware(req: Request, call: Next) -> Res:
                     if "status" in body:
                         req.state.status_code = body["status"]
                 except json.JSONDecodeError:
-                    return error_response(400, ERR_JSON)
+                    return error_response(400, ERR_JSON, req)
 
         response = await call(req)
         if hasattr(req.state, "status_code"):
@@ -57,4 +63,4 @@ async def custom_middleware(req: Request, call: Next) -> Res:
         return response
 
     except Exception:
-        return error_response(500, ERR_SYSTEM)
+        return error_response(500, ERR_SYSTEM, req)
