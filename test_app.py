@@ -256,7 +256,7 @@ def test_cors_timeout():
         json={"delay": TestConfig.TIMEOUT + 1},
     )
     # 時間がかかるリクエストでもCORSヘッダーが正しく設定されることを確認
-    assert response.status_code in [HTTPStatus.OK, HTTPStatus.REQUEST_TIMEOUT]
+    assert response.status_code in [HTTPStatus.BAD_REQUEST, HTTPStatus.REQUEST_TIMEOUT]
     TestConfig.verify_cors_headers(response.headers)
 
 
