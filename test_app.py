@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from fastapi.testclient import TestClient
 from app import app
 
@@ -47,8 +48,8 @@ def test_cors_preflight_disallowed_origin():
         REQ_HEADERS: TYPE
     }
     response = client.options(PATH, headers=headers)
-    # プリフライトリクエストは常に200を返す
-    assert response.status_code == 200
+    # プリフライトリクエストは許可されていないOriginからの場合はBAD_REQUEST
+    assert response.status_code == HTTPStatus.BAD_REQUEST
     # CORSヘッダーは付与されない
     assert AC_O not in response.headers
 
