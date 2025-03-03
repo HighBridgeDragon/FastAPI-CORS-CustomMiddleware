@@ -10,6 +10,7 @@ from app import app
 
 client = TestClient(app)
 
+
 @dataclass
 class TestConfig:
     """テスト設定とフィクスチャを管理するクラス"""
@@ -86,6 +87,7 @@ class TestConfig:
             assert methods in headers[TestConfig.HEADERS["AC_METHODS"]], f"Method {methods} not allowed"
             assert TestConfig.HEADERS["TYPE"] in headers[TestConfig.HEADERS["AC_HEADERS"]]
 
+
 def test_cors_preflight_allowed_origin():
     """許可されたOriginからのプリフライトリクエスト検証"""
     headers = {
@@ -97,6 +99,7 @@ def test_cors_preflight_allowed_origin():
     assert response.status_code == HTTPStatus.OK
     TestConfig.verify_cors_headers(response.headers, TestConfig.METHODS["POST"])
 
+
 def test_cors_preflight_disallowed_origin():
     """許可されていないOriginからのプリフライトリクエスト検証"""
     headers = {
@@ -107,6 +110,7 @@ def test_cors_preflight_disallowed_origin():
     response = client.options(TestConfig.TEST_PATH, headers=headers)
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert TestConfig.HEADERS["AC_ORIGIN"] not in response.headers
+
 
 def test_cors_special_origins():
     """特殊なOrigin値の検証"""
@@ -120,6 +124,7 @@ def test_cors_special_origins():
         assert response.status_code == HTTPStatus.BAD_REQUEST
         assert TestConfig.HEADERS["AC_ORIGIN"] not in response.headers
 
+
 def test_cors_empty_post():
     """空のPOSTリクエスト検証"""
     headers = TestConfig.get_auth_headers(TestConfig.ALLOWED_ORIGIN)
@@ -127,6 +132,7 @@ def test_cors_empty_post():
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid JSON"
     TestConfig.verify_cors_headers(response.headers)
+
 
 def test_cors_invalid_content_type():
     """不正なContent-Typeヘッダー検証"""
@@ -138,6 +144,7 @@ def test_cors_invalid_content_type():
     response = client.post(TestConfig.TEST_PATH, headers=headers, data="test")
     assert response.status_code == HTTPStatus.BAD_REQUEST
     TestConfig.verify_cors_headers(response.headers)
+
 
 def test_cors_status_code_boundaries():
     """ステータスコード境界値の検証"""
@@ -153,6 +160,7 @@ def test_cors_status_code_boundaries():
         assert response.status_code == status
         TestConfig.verify_cors_headers(response.headers)
 
+
 def test_cors_success_response():
     """正常系レスポンスのCORSヘッダー検証"""
     headers = TestConfig.get_auth_headers(TestConfig.ALLOWED_ORIGIN)
@@ -163,6 +171,7 @@ def test_cors_success_response():
     )
     assert response.status_code == HTTPStatus.OK
     TestConfig.verify_cors_headers(response.headers)
+
 
 def test_cors_unauthorized_response():
     """認証エラー時のCORSヘッダー検証"""
@@ -179,12 +188,14 @@ def test_cors_unauthorized_response():
     assert response.json()["error"] == "Authentication required"
     TestConfig.verify_cors_headers(response.headers)
 
+
 def test_cors_method_not_allowed():
     """不正なHTTPメソッド時のCORSヘッダー検証"""
     headers = TestConfig.get_auth_headers(TestConfig.ALLOWED_ORIGIN, include_type=False)
     response = client.get(TestConfig.TEST_PATH, headers=headers)
     assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
     TestConfig.verify_cors_headers(response.headers)
+
 
 def test_cors_preflight_cache():
     """プリフライトリクエストのキャッシュ制御検証"""
@@ -206,6 +217,7 @@ def test_cors_preflight_cache():
     assert response.status_code == HTTPStatus.OK
     TestConfig.verify_cors_headers(response.headers, TestConfig.METHODS["POST"])
 
+
 def test_cors_multiple_methods():
     """異なるHTTPメソッドの組み合わせテスト"""
     for method in [TestConfig.METHODS["PUT"], TestConfig.METHODS["DELETE"]]:
@@ -217,6 +229,7 @@ def test_cors_multiple_methods():
         response = client.options(TestConfig.TEST_PATH, headers=headers)
         assert response.status_code == HTTPStatus.OK
         TestConfig.verify_cors_headers(response.headers, method)
+
 
 def test_cors_error_messages_i18n():
     """エラーメッセージの多言語対応検証"""
@@ -230,6 +243,7 @@ def test_cors_error_messages_i18n():
         assert "error" in response.json()
         TestConfig.verify_cors_headers(response.headers)
 
+
 def test_cors_timeout():
     """タイムアウト検証"""
     headers = TestConfig.get_auth_headers(TestConfig.ALLOWED_ORIGIN)
@@ -241,6 +255,7 @@ def test_cors_timeout():
     # 時間がかかるリクエストでもCORSヘッダーが正しく設定されることを確認
     assert response.status_code in [HTTPStatus.OK, HTTPStatus.REQUEST_TIMEOUT]
     TestConfig.verify_cors_headers(response.headers)
+
 
 def test_cors_rate_limit():
     """レート制限検証"""
@@ -270,6 +285,7 @@ def test_cors_rate_limit():
             request_count += 1
 
     assert request_count <= TestConfig.RATE_LIMIT["MAX_REQUESTS"], "レート制限が機能していません"
+
 
 def test_cors_bulk_requests():
     """大量リクエスト時の検証"""
