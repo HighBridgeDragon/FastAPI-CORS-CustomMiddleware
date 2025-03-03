@@ -1,4 +1,5 @@
 import json
+from http import HTTPStatus
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,11 +27,10 @@ app.middleware("http")(custom_middleware)
 @app.post("/test-status")
 async def test_status(request: Request):
     try:
-        body = await request.json()
-        status = getattr(request.state, "status_code", 200)
+        status = getattr(request.state, "status_code", HTTPStatus.BAD_REQUEST)
         return {"message": f"Status {status}"}
     except json.JSONDecodeError:
         return JSONResponse(
-            status_code=400,
+            status_code=HTTPStatus.BAD_REQUEST,
             content={"error": "Invalid JSON"}
         )
