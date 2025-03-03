@@ -32,5 +32,5 @@ async def test_status(request: Request):
     except json.JSONDecodeError:
         return JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
-            content={"error": "Invalid JSON"}
+            content={"error": "Invalid JSON"},
         )
