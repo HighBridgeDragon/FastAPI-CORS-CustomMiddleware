@@ -1,8 +1,10 @@
+import json
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from middleware import custom_middleware
-import json
 
 app = FastAPI()
 

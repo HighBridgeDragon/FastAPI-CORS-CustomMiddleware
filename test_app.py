@@ -1,9 +1,11 @@
-from http import HTTPStatus
 import time
-from typing import Optional
-from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from http import HTTPStatus
+from typing import Optional
+
 from fastapi.testclient import TestClient
+
 from app import app
 
 client = TestClient(app)
