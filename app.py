@@ -27,9 +27,9 @@ app.middleware("http")(custom_middleware)
 @app.post("/test-status")
 async def test_status(request: Request):
     try:
-        status = getattr(request.state, "status_code", HTTPStatus.BAD_REQUEST)
+        status = getattr(request.state, "status_code")
         return {"message": f"Status {status}"}
-    except json.JSONDecodeError:
+    except Exception:
         return JSONResponse(
             status_code=HTTPStatus.BAD_REQUEST,
             content={"error": "Invalid JSON"},
