@@ -155,11 +155,11 @@ def test_cors_invalid_content_type():
 def test_cors_status_code_boundaries():
     """ステータスコード境界値の検証"""
     status_codes = [
-        100,
-        200,
-        300,
-        400,
-        500,
+        HTTPStatus.CONTINUE,
+        HTTPStatus.OK,
+        HTTPStatus.MULTIPLE_CHOICES,
+        HTTPStatus.BAD_REQUEST,
+        HTTPStatus.INTERNAL_SERVER_ERROR,
     ]
     headers = TestConfig.get_auth_headers(TestConfig.ALLOWED_ORIGIN)
 
