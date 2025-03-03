@@ -37,7 +37,7 @@ def test_cors_preflight_allowed_origin():
         REQ_HEADERS: TYPE
     }
     response = client.options(PATH, headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     verify_cors_headers(response.headers, METHOD)
 
 def test_cors_preflight_disallowed_origin():
@@ -60,8 +60,8 @@ def test_cors_success_response_allowed_origin():
         TYPE: "application/json",
         "Authorization": "Bearer test-token"
     }
-    response = client.post(PATH, headers=headers, json={"status": 200})
-    assert response.status_code == 200
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.OK})
+    assert response.status_code == HTTPStatus.OK
     verify_cors_headers(response.headers)
 
 def test_cors_success_response_disallowed_origin():
@@ -71,8 +71,8 @@ def test_cors_success_response_disallowed_origin():
         TYPE: "application/json",
         "Authorization": "Bearer test-token"
     }
-    response = client.post(PATH, headers=headers, json={"status": 200})
-    assert response.status_code == 200
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.OK})
+    assert response.status_code == HTTPStatus.OK
     assert AC_O not in response.headers
 
 def test_cors_unauthorized_response_allowed_origin():
@@ -81,8 +81,8 @@ def test_cors_unauthorized_response_allowed_origin():
         "Origin": ORIGIN,
         TYPE: "application/json"
     }
-    response = client.post(PATH, headers=headers, json={"status": 200})
-    assert response.status_code == 401
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.OK})
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["error"] == "Authentication required"
     verify_cors_headers(response.headers)
 
@@ -92,8 +92,8 @@ def test_cors_unauthorized_response_disallowed_origin():
         "Origin": DISALLOWED_ORIGIN,
         TYPE: "application/json"
     }
-    response = client.post(PATH, headers=headers, json={"status": 200})
-    assert response.status_code == 401
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.OK})
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["error"] == "Authentication required"
     assert AC_O not in response.headers
 
@@ -105,7 +105,7 @@ def test_cors_invalid_json_response_allowed_origin():
         "Authorization": "Bearer test-token"
     }
     response = client.post(PATH, headers=headers, data="invalid json")
-    assert response.status_code == 400
+    assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid JSON"
     verify_cors_headers(response.headers)
 
@@ -117,7 +117,7 @@ def test_cors_invalid_json_response_disallowed_origin():
         "Authorization": "Bearer test-token"
     }
     response = client.post(PATH, headers=headers, data="invalid json")
-    assert response.status_code == 400
+    assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid JSON"
     assert AC_O not in response.headers
 
@@ -128,7 +128,7 @@ def test_cors_method_not_allowed_response_allowed_origin():
         "Authorization": "Bearer test-token"
     }
     response = client.get(PATH, headers=headers)
-    assert response.status_code == 405
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
     verify_cors_headers(response.headers)
 
 def test_cors_method_not_allowed_response_disallowed_origin():
@@ -138,7 +138,7 @@ def test_cors_method_not_allowed_response_disallowed_origin():
         "Authorization": "Bearer test-token"
     }
     response = client.get(PATH, headers=headers)
-    assert response.status_code == 405
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
     assert AC_O not in response.headers
 
 def test_cors_custom_status_allowed_origin():
@@ -149,14 +149,14 @@ def test_cors_custom_status_allowed_origin():
         TYPE: "application/json"
     }
     # 成功ステータス (201)
-    response = client.post(PATH, headers=headers, json={"status": 201})
-    assert response.status_code == 201
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.CREATED})
+    assert response.status_code == HTTPStatus.CREATED
     assert response.json() == {"message": "Status 201"}
     verify_cors_headers(response.headers)
 
     # エラーステータス (404)
-    response = client.post(PATH, headers=headers, json={"status": 404})
-    assert response.status_code == 404
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.NOT_FOUND})
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {"message": "Status 404"}
     verify_cors_headers(response.headers)
 
@@ -168,13 +168,13 @@ def test_cors_custom_status_disallowed_origin():
         TYPE: "application/json"
     }
     # 成功ステータス (201)
-    response = client.post(PATH, headers=headers, json={"status": 201})
-    assert response.status_code == 201
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.CREATED})
+    assert response.status_code == HTTPStatus.CREATED
     assert response.json() == {"message": "Status 201"}
     assert AC_O not in response.headers
 
     # エラーステータス (404)
-    response = client.post(PATH, headers=headers, json={"status": 404})
-    assert response.status_code == 404
+    response = client.post(PATH, headers=headers, json={"status": HTTPStatus.NOT_FOUND})
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {"message": "Status 404"}
     assert AC_O not in response.headers
